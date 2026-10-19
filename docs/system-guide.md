@@ -337,3 +337,17 @@ The architecture is intended for small-scale operation on free plans, not a prom
 - [Pages workflow](../.github/workflows/deploy.yml)
 
 For current provider behavior and limits, consult [Supabase documentation](https://supabase.com/docs), [Cloudflare Pages documentation](https://developers.cloudflare.com/pages/), [Workers documentation](https://developers.cloudflare.com/workers/) and [D1 documentation](https://developers.cloudflare.com/d1/). Repository code and deployed configuration remain the authority for RecallCode's own behavior.
+
+## 14. Leaderboard
+
+The Leaderboard screen (`src/leaderboard.js`, coordinated by `src/app.js`) requires login to view community rankings. Participation is separately opt-in: a user chooses a 2–30 character nickname, joins, can rename it, and can leave. No email is copied into the nickname by default. Nicknames are not verified identities or unique handles, and are HTML-escaped when rendered.
+
+Apply `supabase/migrations/202610200002_leaderboard.sql` after the study-sync migration, then deploy Pages. No Worker/D1 change is needed. This migration creates `leaderboard_profiles`, owner-only profile reads, a score trigger on study snapshot inserts/updates, and two authenticated RPCs. It is a one-time migration; for manual application, wrap it in a transaction to avoid partially applied DDL.
+
+`set_leaderboard_profile(display_name, participating)` derives the account ID from the authenticated session and computes its score from its existing snapshot. It does not accept a client-supplied score or target user ID. `get_leaderboard()` returns the top 100 learners plus the caller's own entry if participating, with shared ranks for equal scores. The returned fields are only rank, display name, correct-card count and `is_me`. Profile table access does not expose other users' IDs or preferences. These narrow functions use a fixed search path and explicitly granted execution permissions; anonymous callers cannot invoke them.
+
+The score is the number of distinct existing card IDs whose latest history entry (timestamp, then history order to break ties) is Good or Easy. Orphan history is ignored. Again/Hard lowers the score; repeat Good/Easy reviews do not multiply it. Custom and suspended cards count. Snapshot updates refresh the score in the same database transaction, including imports/restores. Rankings reflect synced data, while the local summary can include pending edits. Viewers refresh on opening the screen or pressing Refresh rankings; the current user's successful sync also reloads an open leaderboard.
+
+This is a motivational, self-reported scoreboard. Because snapshots, custom cards and self-ratings originate in the browser, it is not cheat-proof or suitable for prizes, certification or verified skill ranking. Server derivation prevents a direct score-column update but cannot prove that a learner actually recalled an answer. There is no weekly reset or immutable achievement history. Leaving hides the entry from subsequent leaderboard reads; it does not erase copies someone already saw. Private study data stays in the existing RLS-protected snapshot table.
+
+Tests cover duplicate reviews/cards, latest-rating order, orphan history, opt-in/out, equal ranks, unauthorized score changes, anonymous and cross-account access, safe nickname rendering, guest gating and mobile layout. Live account testing still depends on the GitHub OAuth provider being correctly configured.
