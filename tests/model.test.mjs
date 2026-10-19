@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { schedule, dueCards, DAY, validateData, saveData, removeQuestion, STORAGE_KEY } from '../src/model.js';
+import { seedData } from '../src/seed.js';
+test('ratings create distinct schedules and preserve original card',()=>{const c=seedData().cards[0];const now=1000;assert.equal(schedule(c,'Again',now).due,61000);assert.equal(schedule(c,'Good',now).due,now+DAY);assert.equal(schedule(c,'Easy',now).due,now+4*DAY);assert.equal(c.reviews,0);assert.equal(schedule(c,'Again',now).lapses,1);assert.throws(()=>schedule(c,'bad'));});
+test('mature cards grow intervals and ease never drops below 1.3',()=>{let c={...seedData().cards[0],interval:10};assert.equal(schedule(c,'Good').interval,25);assert.equal(schedule(c,'Hard').interval,12);for(let i=0;i<30;i++)c=schedule(c,'Again');assert.equal(c.ease,1.3);});
+test('due queue excludes future and paused cards, interleaves siblings',()=>{const d=seedData();d.cards.forEach(c=>c.due=0);d.cards[1].suspended=true;d.cards[2].due=9999;const queue=dueCards(d,100);assert.equal(queue.length,4);assert.notEqual(queue[0].questionId,queue[1].questionId);assert.ok(queue.every(c=>!c.suspended&&c.due<=100));});
+test('backup roundtrip retains code and schedules',()=>{const d=seedData();let raw;saveData({setItem:(k,v)=>{assert.equal(k,STORAGE_KEY);raw=v;}},d);assert.deepEqual(validateData(JSON.parse(raw)),d);});
+test('rejects invalid backups, orphan cards, duplicate ids and unsafe URLs',()=>{for(const mutate of [d=>d.version=2,d=>d.cards[0].questionId='missing',d=>d.cards[0].due=-1,d=>d.cards[0].id=d.cards[1].id,d=>d.questions[0].url='javascript:alert(1)',d=>d.history.push({cardId:'missing',rating:'Good',at:1})]){const d=seedData();mutate(d);assert.throws(()=>validateData(d));}});
+test('question removal cascades to cards and history without touching other questions',()=>{const d=seedData();d.history=[{cardId:d.cards[0].id,rating:'Good',at:1}];const next=removeQuestion(d,'two-sum');assert.equal(next.questions.length,1);assert.equal(next.cards.length,2);assert.equal(next.history.length,0);assert.equal(d.cards.length,6);});
+test('failed storage writes are surfaced',()=>{assert.throws(()=>saveData({setItem(){throw new Error('QuotaExceeded');}},seedData()),/QuotaExceeded/);});

@@ -1,0 +1,20 @@
+{
+  "name": "recall-code",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Question-centered flashcards for coding interview practice",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/model.test.mjs",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
+  }
+}
