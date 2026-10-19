@@ -60,6 +60,7 @@ Paths below are relative to the repository root.
 | `src/cloud.js` | Supabase client, PKCE OAuth/session events, remote read/write adapter |
 | `src/sync-store.js` | Account cache, dirty state, serialized sync, revision conflicts and recovery |
 | `src/progress.js` | Latest ratings, per-question colors, distinct-card and attempt counts |
+| `src/profile.js` | Account identity, membership date, practice totals and profile navigation; renders provider metadata as escaped text |
 | `src/feedback.js` | Local sound preferences and synthesized Web Audio feedback |
 | `src/reminders.js` | Browser permission, service-worker registration, push subscription, reminder API client |
 | `sw.js` | Receives push events, displays notifications, opens/focuses the app on click |

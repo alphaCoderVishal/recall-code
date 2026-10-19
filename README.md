@@ -17,6 +17,8 @@ Open http://127.0.0.1:4173. The build works without cloud credentials in guest m
 
 ## Features
 
+- Dedicated Profile page with account name/email, sign-in providers, membership date, practice totals, sync controls, sign-out, and links to progress and leaderboard preferences. Signed-in navigation says Profile; sync status appears separately.
+
 - 250 curated questions across arrays, search, sliding windows, linked lists, trees, heaps, graphs, backtracking, dynamic programming and bits.
 - Each question has original context, examples, reasoning, complexity, pitfalls, an interview follow-up, full Java code and multiple recall cards.
 - Search/filter the catalog, inspect a study guide, and add selected questions to practice. Enrollment preserves existing edits and schedules.
