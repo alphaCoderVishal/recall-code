@@ -1,3 +1,4 @@
+import { signInButtons } from "./auth-options.js";
 import {
   STORAGE_KEY,
   TYPES,
@@ -277,7 +278,8 @@ function accountSection() {
     return '<section class="account-panel"><h2>Login & sync</h2><p>Cloud login is not configured on this local build. Your browser-only practice still works.</p></section>';
   if (!cloudUser)
     return (
-      '<section class="account-panel"><h2>Take your progress with you.</h2><p>Sign in to keep your study progress available on your other devices. Your guest practice stays separate until you choose to import it.</p><button class="primary" data-action="login">Sign in with GitHub</button>' +
+      '<section class="account-panel"><h2>Take your progress with you.</h2><p>Sign in to keep your study progress available on your other devices. Your guest practice stays separate until you choose to import it.</p>' +
+      signInButtons() +
       (cloudAuthMode === "email"
         ? '<button data-action="email-login">Email sign in</button>'
         : "") +
@@ -579,7 +581,7 @@ async function action(name, value, targetId) {
     document.querySelector("#catalog-results").innerHTML = catalogResults();
   }
   if (name === "login") {
-    if (cloud) await cloud.login();
+    if (cloud) await cloud.login(value || "github");
     else notify("Cloud login is not configured yet.");
   }
   if (name === "sync") {

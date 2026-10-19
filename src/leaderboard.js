@@ -1,3 +1,4 @@
+import { signInButtons } from "./auth-options.js";
 const escape = (value) =>
   String(value ?? "").replace(
     /[&<>"']/g,
@@ -14,7 +15,7 @@ export function leaderboardView(board, signedIn, configured, localScore) {
     return (
       intro +
       summary +
-      `<section class="account-panel"><h2>Join the practice community</h2><p>Your guest progress stays private. Sign in to view rankings and choose whether to share a display name and score.</p>${configured ? '<button class="primary" data-action="login">Sign in with GitHub</button>' : "<p>Cloud login is not configured in this build.</p>"}</section>`
+      `<section class="account-panel"><h2>Join the practice community</h2><p>Your guest progress stays private. Sign in to view rankings and choose whether to share a display name and score.</p>${configured ? signInButtons() : "<p>Cloud login is not configured in this build.</p>"}</section>`
     );
   if (board.loading)
     return intro + summary + '<p role="status">Loading leaderboard…</p>';

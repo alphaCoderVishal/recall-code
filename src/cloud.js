@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { SyncStore } from "./sync-store.js";
 import { validateData } from "./model.js";
+import { oauthOptions } from "./auth-options.js";
 
 const url = typeof __SUPABASE_URL__ === "undefined" ? "" : __SUPABASE_URL__;
 const key = typeof __SUPABASE_KEY__ === "undefined" ? "" : __SUPABASE_KEY__;
@@ -67,14 +68,10 @@ export function createCloud({ onData, onStatus, onUser, pack, unpack }) {
   return {
     store,
     client,
-    async login() {
-      const { error } = await client.auth.signInWithOAuth({
-        provider: "github",
-        options: {
-          redirectTo: location.origin + location.pathname,
-          scopes: "read:user user:email",
-        },
-      });
+    async login(provider = "github") {
+      const { error } = await client.auth.signInWithOAuth(
+        oauthOptions(provider, location.origin + location.pathname),
+      );
       if (error) throw error;
     },
     async signout() {

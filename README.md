@@ -30,7 +30,7 @@ Open http://127.0.0.1:4173. The build works without cloud credentials in guest m
 
 Cloudflare Pages serves the static app and catalog. Supabase Free stores user progress and custom content. See [deployment instructions](docs/deployment.md). Free tiers have quotas and can change; no paid upgrade is needed for this initial setup. Supabase Free projects can pause after inactivity.
 
-GitHub login is the default because Supabase's default email sender is restricted to project-team addresses. Public email/password signup needs an external SMTP service. OAuth credentials live only in Supabase, never in the repository or frontend bundle.
+Google (including Gmail accounts) and GitHub login buttons are available. Each provider must be configured and enabled in Supabase before it works; see [Google setup](docs/deployment.md#google--gmail-sign-in). Google requests basic identity information, not mailbox access. Public email/password signup needs an external SMTP service because Supabase's default email sender is restricted to project-team addresses. OAuth credentials live only in Supabase, never in the repository or frontend bundle.
 
 ## Research and quality
 
