@@ -60,6 +60,8 @@ RecallCode is independent and is not affiliated with LeetCode or Anki.
 
 ## Progress, sounds, and daily push reminders
 
+The Leaderboard tab ranks signed-in, opt-in learners by distinct cards whose latest synced self-rating is Good or Easy. Repeat reviews do not add points; Again/Hard removes a card's point. Custom and paused cards count. This is self-reported recall, not verified correctness. Only a chosen display name, aggregate score, rank and current-user marker are shared with signed-in viewers. Apply `supabase/migrations/202610200002_leaderboard.sql` after the study-sync migration before deploying this feature. See the [leaderboard design](docs/system-guide.md#14-leaderboard).
+
 The Progress tab counts distinct cards reviewed, latest Good/Easy cards, latest Again cards, total attempts, and today's attempts. Green questions have Good/Easy on every active card; red means at least one latest Again; amber is partial/Hard; gray is unreviewed. Paused cards are excluded from question colors, but included in overall card totals. Self-ratings are not automatic answer grading or permanent mastery.
 
 Data & backup contains device-local sound/mute/volume controls and daily push settings. Sounds are original synthesized tones, not Duolingo assets. Notifications use a service worker plus a scheduled Cloudflare Worker/D1 backend and can arrive when the app tab is closed. Browser/device support, notification permissions, battery restrictions, Do Not Disturb, and connectivity affect delivery. iOS/iPadOS users must install the site to the Home Screen. No email or login is required for reminders. Reminders are device-wide, continue after sign-out, and can be turned off in settings or browser permissions.

@@ -11,6 +11,7 @@ import {
   validateData,
   saveData,
 } from "./model.js";
+import { leaderboardView, fetchLeaderboard } from "./leaderboard.js";
 import { progressSummary, questionProgress } from "./progress.js";
 import { seedData } from "./seed.js";
 import {
@@ -67,6 +68,22 @@ let data,
   cloudUser = null,
   cloudStatus = cloudConfigured ? "checking" : "unconfigured",
   cloudMessage = "";
+let board = { rows: [], profile: null, loading: false, error: false };
+let boardRequest = 0;
+async function loadLeaderboard() {
+  if (!cloudUser || !cloud) return;
+  const request = ++boardRequest;
+  board = { ...board, loading: true, error: false };
+  render();
+  try {
+    const result = await fetchLeaderboard(cloud.client);
+    if (request === boardRequest) board = result;
+  } catch {
+    if (request === boardRequest)
+      board = { ...board, loading: false, error: true };
+  }
+  if (request === boardRequest && screen === "leaderboard") render();
+}
 let catalogSearch = "",
   catalogDifficulty = "",
   catalogTopic = "",
@@ -341,6 +358,7 @@ function render() {
     ["studio", "Card studio"],
     ["history", "History"],
     ["progress", "Progress"],
+    ["leaderboard", "Leaderboard"],
   ]
     .map(
       ([key, label]) =>
@@ -348,7 +366,7 @@ function render() {
     )
     .join(
       "",
-    )}</nav><button class="quiet account-button" data-action="navigate" data-value="settings">${cloudUser ? esc(syncLabel()) : "Login"}</button><button class="quiet backup-button" data-action="navigate" data-value="settings">Data & backup</button></header><main id="main">${blocked ? '<div class="warning" role="alert">Saved data could not be loaded. It has not been overwritten. Open Data & backup to export the original data or restore a valid backup.</div>' : ""}${screen === "review" ? reviewView() : screen === "catalog" ? catalogView() : screen === "library" ? libraryView() : screen === "studio" ? studioView() : screen === "history" ? historyView() : screen === "progress" ? progressView() : settingsView()}</main><footer><span>Remember the reasoning.</span><span>${esc(syncLabel())} · ${data.questions.length} questions · ${data.cards.length} cards</span></footer>`;
+    )}</nav><button class="quiet account-button" data-action="navigate" data-value="settings">${cloudUser ? esc(syncLabel()) : "Login"}</button><button class="quiet backup-button" data-action="navigate" data-value="settings">Data & backup</button></header><main id="main">${blocked ? '<div class="warning" role="alert">Saved data could not be loaded. It has not been overwritten. Open Data & backup to export the original data or restore a valid backup.</div>' : ""}${screen === "review" ? reviewView() : screen === "catalog" ? catalogView() : screen === "library" ? libraryView() : screen === "studio" ? studioView() : screen === "history" ? historyView() : screen === "progress" ? progressView() : screen === "leaderboard" ? leaderboardView(board, Boolean(cloudUser), cloudConfigured, progressSummary(data).strong) : settingsView()}</main><footer><span>Remember the reasoning.</span><span>${esc(syncLabel())} · ${data.questions.length} questions · ${data.cards.length} cards</span></footer>`;
 }
 function openModal(title, body, onSubmit) {
   modal.innerHTML = `<form id="modal-form"><div class="modal-header"><h2 id="modal-title">${title}</h2><button type="button" class="quiet" data-close aria-label="Close dialog">×</button></div>${body}<p class="form-error" role="alert" id="form-error"></p><div class="modal-footer"><button type="button" data-close>Cancel</button><button type="submit" class="primary">Save</button></div></form>`;
@@ -475,6 +493,45 @@ function rate(rating) {
   }
 }
 async function action(name, value, targetId) {
+  if (name === "leaderboard-refresh") return loadLeaderboard();
+  if (name === "leaderboard-join" || name === "leaderboard-leave") {
+    if (!cloudUser || !cloud) return;
+    const displayName =
+      name === "leaderboard-leave"
+        ? board.profile?.display_name
+        : document.querySelector("#leaderboard-name").value.trim();
+    if (!displayName || displayName.length < 2 || displayName.length > 30)
+      return notify("Choose a display name between 2 and 30 characters.");
+    const account = cloudUser.id;
+    document
+      .querySelectorAll('[data-action^="leaderboard-"]')
+      .forEach((b) => (b.disabled = true));
+    try {
+      const { error } = await cloud.client.rpc("set_leaderboard_profile", {
+        p_display_name: displayName,
+        p_participating: name === "leaderboard-join",
+      });
+      if (error) throw error;
+      if (cloudUser?.id !== account) return;
+      await loadLeaderboard();
+      notify(
+        name === "leaderboard-leave"
+          ? "You left the leaderboard."
+          : "Leaderboard profile saved.",
+      );
+    } catch {
+      if (cloudUser?.id === account) {
+        render();
+        notify("Could not save leaderboard preferences. Please try again.");
+      }
+    }
+    return;
+  }
+  if (name === "navigate" && value === "leaderboard") {
+    screen = "leaderboard";
+    render();
+    return loadLeaderboard();
+  }
   if (name === "preview-sound") {
     const played = await playFeedback(value, { ...feedback, sound: true });
     if (!played) notify("Audio is unavailable in this browser.");
@@ -846,6 +903,8 @@ cloud = createCloud({
   unpack: unpackData,
   onUser(user) {
     cloudUser = user;
+    ++boardRequest;
+    board = { rows: [], profile: null, loading: false, error: false };
     if (user) {
       data = { version: 1, questions: [], cards: [], history: [] };
       blocked = true;
@@ -874,6 +933,7 @@ cloud = createCloud({
     cloudStatus = status;
     cloudMessage = message;
     render();
+    if (screen === "leaderboard" && status === "saved") void loadLeaderboard();
   },
 });
 window.addEventListener("online", () => void cloud?.store.sync());
