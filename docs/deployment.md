@@ -1,5 +1,7 @@
 # Cloudflare Pages + Supabase Free
 
+For architecture diagrams, the reminder Worker/D1 deployment runbook, configuration details and troubleshooting, see the [system and codebase guide](system-guide.md).
+
 ## Database and login
 
 1. Create a Supabase Free project near your users.
@@ -14,7 +16,7 @@ GitHub OAuth is the default. Optional `AUTH_MODE=email` adds email/password, but
 
 Run `npm ci`, `npm test`, `npm run test:java`, `npm run build`, then browser checks. Create a Cloudflare Pages Direct Upload project named `recall-code` and upload only `dist/` (or a ZIP of its contents). Alternatively, authenticate Wrangler and run `npm run deploy`; that command refuses to deploy an unconfigured login build.
 
-For automatic deployment, configure the repository's manual Pages workflow with `CLOUDFLARE_API_TOKEN` (Pages edit for the deployment account) as a secret and `CLOUDFLARE_ACCOUNT_ID`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` as variables. Tokens are not required in the shipped app. Direct Upload projects are deployed through upload/CLI rather than Git integration.
+For deployment through GitHub Actions, configure the repository's manually dispatched Pages workflow with `CLOUDFLARE_API_TOKEN` (Pages edit for the deployment account) as a secret and `CLOUDFLARE_ACCOUNT_ID`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `REMINDERS_URL` as variables. Merging a PR does not automatically deploy. Tokens are not required in the shipped app. Direct Upload projects are deployed through upload/CLI rather than Git integration. The reminder Worker and D1 schema are deployed separately.
 
 ## Verify production
 
