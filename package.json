@@ -5,16 +5,26 @@
   "type": "module",
   "description": "Question-centered flashcards for coding interview practice",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
-    "start": "node scripts/serve.mjs",
-    "dev": "node scripts/serve.mjs",
+    "start": "npm run build && node scripts/serve.mjs --dist",
+    "dev": "npm start",
     "build": "node scripts/build.mjs",
-    "test": "node --test tests/model.test.mjs",
-    "test:e2e": "playwright test"
+    "test": "node --test tests/model.test.mjs tests/sync.test.mjs tests/database.test.mjs tests/catalog.test.mjs",
+    "test:e2e": "playwright test",
+    "test:java": "node scripts/verify-java.mjs",
+    "deploy": "node scripts/deploy.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.64.1"
+    "@electric-sql/pglite": "^0.5.10",
+    "@playwright/test": "^1.64.1",
+    "esbuild": "^0.28.2",
+    "prettier": "^3.9.10",
+    "prettier-plugin-java": "^2.11.0",
+    "wrangler": "^4.151.2"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0"
   }
 }
