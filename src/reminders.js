@@ -38,7 +38,7 @@ function decode(value) {
     (c) => c.charCodeAt(0),
   );
 }
-export async function enableReminders(time) {
+export async function enableReminders(time, onProgress = () => {}) {
   if (!API) throw new Error("Reminder service is not configured yet.");
   if (!pushSupported())
     throw new Error(
@@ -46,6 +46,7 @@ export async function enableReminders(time) {
     );
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))
     throw new Error("Choose a valid time.");
+  onProgress("Waiting for notification permission in your browser…");
   const permission = await Notification.requestPermission();
   if (permission !== "granted")
     throw new Error(
@@ -61,15 +62,18 @@ export async function enableReminders(time) {
     };
     localStorage.setItem(KEY, JSON.stringify(state));
   }
+  onProgress("Connecting this browser for reminders…");
   await navigator.serviceWorker.register("./sw.js");
   const registration = await navigator.serviceWorker.ready;
   const config = await request("/config", "GET");
   let subscription = await registration.pushManager.getSubscription();
+  onProgress("Creating your device notification subscription…");
   subscription ??= await registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: decode(config.publicKey),
   });
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  onProgress("Saving your daily reminder…");
   const result = await request("/subscription", "PUT", {
     subscription: subscription.toJSON(),
     time,
