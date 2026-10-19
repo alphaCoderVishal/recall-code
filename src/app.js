@@ -11,6 +11,7 @@ import {
   validateData,
   saveData,
 } from "./model.js";
+import { progressSummary, questionProgress } from "./progress.js";
 import { seedData } from "./seed.js";
 import {
   catalog,
@@ -23,6 +24,25 @@ import {
 } from "./catalog.js";
 import { createCloud, cloudConfigured, cloudAuthMode } from "./cloud.js";
 
+import {
+  readFeedback,
+  saveFeedback,
+  playFeedback,
+  feedbackMessage,
+} from "./feedback.js";
+import {
+  reminderState,
+  pushSupported,
+  remindersConfigured,
+  enableReminders,
+  disableReminders,
+  testReminder,
+} from "./reminders.js";
+let feedback = readFeedback();
+function practicePreferences() {
+  const r = reminderState();
+  return `<section class="settings-panel"><h2>Make practice a habit</h2><p>Sounds and reminders are optional and apply to this browser, for both guest and signed-in practice.</p><label class="preference-toggle"><input id="sound-enabled" type="checkbox" ${feedback.sound ? "checked" : ""}> Play recall sounds</label><label>Sound volume<input id="sound-volume" type="range" min="0" max="100" value="${Math.round(feedback.volume * 100)}"></label><div class="actions"><button data-action="preview-sound" data-value="good">Preview success</button><button data-action="preview-sound" data-value="again">Preview try again</button></div><p class="small muted">Good/Easy: a bright chime. Hard: a gentle cue. Again: a soft retry sound. These reflect your self-rating; answers are not automatically graded.</p><hr><h2>Daily reminder</h2><p id="reminder-setup-status" aria-live="polite"></p><p>A friendly nudge even when the app is closed. No email needed. Delivery depends on your browser, device notification settings, and connection.</p><label>Reminder time<input id="reminder-time" type="time" value="${esc(r.time || "20:00")}"></label><p class="small muted">Time zone: ${esc(r.zone || Intl.DateTimeFormat().resolvedOptions().timeZone)}. Delivery is approximate. On iPhone/iPad, install to your Home Screen first.</p><p>${r.enabled ? "Daily reminder enabled on this browser." : "Daily reminders are off."}${typeof Notification !== "undefined" && Notification.permission === "denied" ? " Notifications are blocked in browser settings." : ""}</p><div class="actions"><button data-action="enable-reminders" ${!remindersConfigured || !pushSupported() ? "disabled" : ""}>${r.enabled ? "Save reminder time" : "Enable daily reminders"}</button>${r.enabled ? '<button data-action="test-reminder">Send test notification</button><button data-action="disable-reminders">Turn off reminders</button>' : ""}</div>${!remindersConfigured ? '<p class="small muted">The reminder backend has not been connected to this build.</p>' : !pushSupported() ? '<p class="small muted">Push notifications are unavailable in this browser context.</p>' : ""}${r.pendingRemoval ? '<button data-action="disable-reminders">Retry server removal</button>' : ""}<p class="small muted">Enabling stores this device’s push subscription, time, and time zone on our reminder service. Turning off removes it. Reminders are device-wide and continue after sign-out until disabled.</p></section>`;
+}
 const app = document.querySelector("#app"),
   modal = document.querySelector("#modal");
 const esc = (value) =>
@@ -165,7 +185,7 @@ function questionRows() {
             due = cards.filter(
               (c) => !c.suspended && c.due <= Date.now(),
             ).length;
-          return `<article class="question-row"><div class="question-main"><div class="question-title">${esc(q.title)}</div><div class="muted small">${esc(q.tags || "No tags yet")}</div></div><span class="badge ${q.difficulty.toLowerCase()}">${esc(q.difficulty)}</span><div class="counts">${cards.length} cards<span class="small muted">${due} due</span></div><button data-action="manage" data-id="${q.id}">Manage cards →</button><button class="quiet" data-action="edit-question" data-id="${q.id}" aria-label="Edit ${esc(q.title)}">Edit</button></article>`;
+          return `<article class="question-row progress-${questionProgress(data, q.id).state}"><div class="question-main"><div class="question-title">${esc(q.title)}</div>${progressBadge(q.id)}<div class="muted small">${esc(q.tags || "No tags yet")}</div></div><span class="badge ${q.difficulty.toLowerCase()}">${esc(q.difficulty)}</span><div class="counts">${cards.length} cards<span class="small muted">${due} due</span></div><button data-action="manage" data-id="${q.id}">Manage cards →</button><button class="quiet" data-action="edit-question" data-id="${q.id}" aria-label="Edit ${esc(q.title)}">Edit</button></article>`;
         })
         .join("")
     : '<div class="empty"><h2>No questions found</h2><p>Add a question or change your filters.</p></div>';
@@ -196,7 +216,7 @@ function catalogResults() {
       .slice(catalogPage * 20, catalogPage * 20 + 20)
       .map((q) => {
         const enrolled = enrolledQuestion(data, q);
-        return `<article class="question-row"><div class="question-main"><div class="question-title"><span class="small muted">${q.number}.</span> ${esc(q.title)}</div><div class="muted small">${esc(q.tags)}</div></div><span class="badge ${q.difficulty.toLowerCase()}">${q.difficulty}</span><span class="small muted">${q.cards.length} cards</span><button data-action="preview-catalog" data-id="${q.id}">Study guide</button><button class="${enrolled ? "quiet" : "primary"}" data-action="${enrolled ? "manage" : "enroll"}" data-id="${enrolled?.id || q.id}">${enrolled ? "In my practice" : "Add to practice"}</button></article>`;
+        return `<article class="question-row"><div class="question-main"><div class="question-title"><span class="small muted">${q.number}.</span> ${esc(q.title)}</div>${enrolled ? progressBadge(enrolled.id) : '<span class="recall-badge new">Not in practice</span>'}<div class="muted small">${esc(q.tags)}</div></div><span class="badge ${q.difficulty.toLowerCase()}">${q.difficulty}</span><span class="small muted">${q.cards.length} cards</span><button data-action="preview-catalog" data-id="${q.id}">Study guide</button><button class="${enrolled ? "quiet" : "primary"}" data-action="${enrolled ? "manage" : "enroll"}" data-id="${enrolled?.id || q.id}">${enrolled ? "In my practice" : "Add to practice"}</button></article>`;
       })
       .join("") ||
     '<div class="empty">No matches. Try a different topic or search.</div>'
@@ -286,8 +306,30 @@ function historyView() {
       : '<div class="empty"><h2>Your first review starts here.</h2><p>Reveal an answer and rate your recall to record progress.</p></div>'
   }</div>${history.length > 100 ? '<p class="muted small">Showing the latest 100 reviews. Export includes your complete history.</p>' : ""}`;
 }
+function progressBadge(questionId) {
+  const p = questionProgress(data, questionId);
+  return `<span class="recall-badge ${p.state}">${p.label} · ${p.reviewed}/${p.total} cards reviewed</span>`;
+}
+function progressView() {
+  const p = progressSummary(data),
+    percent = p.total ? Math.round((p.reviewed / p.total) * 100) : 0;
+  return `<div class="page-heading"><div><div class="eyebrow">YOUR PROGRESS</div><h1>See how far you’ve come.</h1><p class="muted">Your latest self-ratings show what is sticking and what needs another pass.</p></div></div><section class="progress-stats">${[
+    [p.reviewed + "/" + p.total, "Cards reviewed at least once"],
+    [p.strong, "Cards with strong recall"],
+    [p.retry, "Cards needing another try"],
+    [p.attempts, "Total review attempts"],
+    [p.today, "Review attempts today"],
+  ]
+    .map(
+      ([n, label]) =>
+        `<article><strong>${n}</strong><span>${label}</span></article>`,
+    )
+    .join(
+      "",
+    )}</section><section class="settings-panel"><h2>${percent}% of your flashcards reviewed</h2><progress max="${p.total || 1}" value="${p.reviewed}" aria-label="Flashcards reviewed"></progress><p class="small muted">Reviewed means you rated a card at least once. Strong recall means its latest rating is Good or Easy—not permanent mastery. Spaced reviews still become due.</p></section><div class="progress-legend"><span class="recall-badge strong">Green: all active cards Good/Easy</span><span class="recall-badge retry">Red: at least one Again</span><span class="recall-badge learning">Amber: partial recall or Hard</span><span class="recall-badge new">Gray: unreviewed</span></div><div class="list">${p.questions.map((q) => `<article class="question-row progress-${q.state}"><div class="question-main"><div class="question-title">${esc(q.title)}</div>${progressBadge(q.id)}</div><button data-action="manage" data-id="${q.id}">Practice cards</button></article>`).join("") || '<div class="empty">Add questions from Explore 250 to start tracking progress.</div>'}</div><p class="small muted">Question colors exclude paused cards. Overall card totals include them.</p>`;
+}
 function settingsView() {
-  return `<div class="page-heading"><div><div class="eyebrow">DATA & BACKUP</div><h1>Your practice, under your control.</h1><p class="muted">${esc(syncLabel())}. Export a backup whenever you want.</p></div></div>${accountSection()}<section class="settings-panel"><h2>Keep a copy of your progress</h2><p>Export includes your questions, code, flashcards, schedules, and review history. Clearing browser data removes the local copy.</p><div class="actions"><button class="primary" data-action="export">Export backup</button><button data-action="import">Restore backup</button></div><input id="import-file" type="file" accept="application/json,.json" hidden><hr><h2>Review scheduling</h2><label>New cards per day<input id="daily-limit" type="number" min="0" max="100" value="${data.settings?.newCardsPerDay ?? 10}"></label><p class="small muted">Due reviews come first. Set 0 to pause introducing new cards.</p><p>Again: retry after 1 minute. Hard: a short interval. Good: a normal interval. Easy: a longer interval. Each card’s interval adapts independently to your ratings.</p><p class="muted small">This app uses a simple SM-2-inspired scheduler. It does not claim Anki or FSRS compatibility. Question siblings are interleaved when possible. Solutions and full code are hidden behind their tabs.</p><hr><h2>Keyboard shortcuts</h2><p><kbd>Space</kbd> Reveal answer &nbsp; <kbd>1</kbd> Again &nbsp; <kbd>2</kbd> Hard &nbsp; <kbd>3</kbd> Good &nbsp; <kbd>4</kbd> Easy</p></section>`;
+  return `<div class="page-heading"><div><div class="eyebrow">DATA & BACKUP</div><h1>Your practice, under your control.</h1><p class="muted">${esc(syncLabel())}. Export a backup whenever you want.</p></div></div>${accountSection()}${practicePreferences()}<section class="settings-panel"><h2>Keep a copy of your progress</h2><p>Export includes your questions, code, flashcards, schedules, and review history. Clearing browser data removes the local copy.</p><div class="actions"><button class="primary" data-action="export">Export backup</button><button data-action="import">Restore backup</button></div><input id="import-file" type="file" accept="application/json,.json" hidden><hr><h2>Review scheduling</h2><label>New cards per day<input id="daily-limit" type="number" min="0" max="100" value="${data.settings?.newCardsPerDay ?? 10}"></label><p class="small muted">Due reviews come first. Set 0 to pause introducing new cards.</p><p>Again: retry after 1 minute. Hard: a short interval. Good: a normal interval. Easy: a longer interval. Each card’s interval adapts independently to your ratings.</p><p class="muted small">This app uses a simple SM-2-inspired scheduler. It does not claim Anki or FSRS compatibility. Question siblings are interleaved when possible. Solutions and full code are hidden behind their tabs.</p><hr><h2>Keyboard shortcuts</h2><p><kbd>Space</kbd> Reveal answer &nbsp; <kbd>1</kbd> Again &nbsp; <kbd>2</kbd> Hard &nbsp; <kbd>3</kbd> Good &nbsp; <kbd>4</kbd> Easy</p></section>`;
 }
 function render() {
   refreshQueue();
@@ -298,6 +340,7 @@ function render() {
     ["library", "Questions"],
     ["studio", "Card studio"],
     ["history", "History"],
+    ["progress", "Progress"],
   ]
     .map(
       ([key, label]) =>
@@ -305,7 +348,7 @@ function render() {
     )
     .join(
       "",
-    )}</nav><button class="quiet account-button" data-action="navigate" data-value="settings">${cloudUser ? esc(syncLabel()) : "Login"}</button><button class="quiet backup-button" data-action="navigate" data-value="settings">Data & backup</button></header><main id="main">${blocked ? '<div class="warning" role="alert">Saved data could not be loaded. It has not been overwritten. Open Data & backup to export the original data or restore a valid backup.</div>' : ""}${screen === "review" ? reviewView() : screen === "catalog" ? catalogView() : screen === "library" ? libraryView() : screen === "studio" ? studioView() : screen === "history" ? historyView() : settingsView()}</main><footer><span>Remember the reasoning.</span><span>${esc(syncLabel())} · ${data.questions.length} questions · ${data.cards.length} cards</span></footer>`;
+    )}</nav><button class="quiet account-button" data-action="navigate" data-value="settings">${cloudUser ? esc(syncLabel()) : "Login"}</button><button class="quiet backup-button" data-action="navigate" data-value="settings">Data & backup</button></header><main id="main">${blocked ? '<div class="warning" role="alert">Saved data could not be loaded. It has not been overwritten. Open Data & backup to export the original data or restore a valid backup.</div>' : ""}${screen === "review" ? reviewView() : screen === "catalog" ? catalogView() : screen === "library" ? libraryView() : screen === "studio" ? studioView() : screen === "history" ? historyView() : screen === "progress" ? progressView() : settingsView()}</main><footer><span>Remember the reasoning.</span><span>${esc(syncLabel())} · ${data.questions.length} questions · ${data.cards.length} cards</span></footer>`;
 }
 function openModal(title, body, onSubmit) {
   modal.innerHTML = `<form id="modal-form"><div class="modal-header"><h2 id="modal-title">${title}</h2><button type="button" class="quiet" data-close aria-label="Close dialog">×</button></div>${body}<p class="form-error" role="alert" id="form-error"></p><div class="modal-footer"><button type="button" data-close>Cancel</button><button type="submit" class="primary">Save</button></div></form>`;
@@ -422,6 +465,8 @@ function rate(rating) {
       history: [...data.history, { cardId: card.id, rating, at: now }],
     })
   ) {
+    void playFeedback(rating.toLowerCase(), feedback);
+    notify(feedbackMessage(rating));
     queue.shift();
     completed++;
     revealed = false;
@@ -430,6 +475,40 @@ function rate(rating) {
   }
 }
 async function action(name, value, targetId) {
+  if (name === "preview-sound") {
+    const played = await playFeedback(value, { ...feedback, sound: true });
+    if (!played) notify("Audio is unavailable in this browser.");
+  }
+  if (
+    name === "enable-reminders" ||
+    name === "disable-reminders" ||
+    name === "test-reminder"
+  ) {
+    const button = document.querySelector(`[data-action="${name}"]`);
+    if (button) button.disabled = true;
+    try {
+      if (name === "enable-reminders") {
+        await enableReminders(
+          document.querySelector("#reminder-time").value,
+          (message) => {
+            const status = document.querySelector("#reminder-setup-status");
+            if (status) status.textContent = message;
+          },
+        );
+        notify("Daily reminder saved.");
+      } else if (name === "disable-reminders") {
+        await disableReminders();
+        notify("Daily reminders turned off.");
+      } else {
+        await testReminder();
+        notify("Test notification sent. Check your device notifications.");
+      }
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      render();
+    }
+  }
   if (name === "preview-catalog") previewCatalog(targetId);
   if (name === "enroll") {
     if (commit(enrollQuestion(data, targetId))) {
@@ -639,6 +718,22 @@ app.addEventListener("input", (e) => {
   }
 });
 app.addEventListener("change", async (e) => {
+  if (e.target.id === "sound-enabled" || e.target.id === "sound-volume") {
+    const next = {
+      ...feedback,
+      ...(e.target.id === "sound-enabled"
+        ? { sound: e.target.checked }
+        : { volume: Number(e.target.value) / 100 }),
+    };
+    try {
+      saveFeedback(next);
+      feedback = next;
+      if (feedback.sound) void playFeedback("good", feedback);
+    } catch {
+      notify("Could not save sound preferences.");
+      render();
+    }
+  }
   if (e.target.id === "catalog-difficulty") {
     catalogDifficulty = e.target.value;
     catalogPage = 0;

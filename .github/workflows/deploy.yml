@@ -6,6 +6,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
+      REMINDERS_URL: ${{ vars.REMINDERS_URL }}
       SUPABASE_URL: ${{ vars.SUPABASE_URL }}
       SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

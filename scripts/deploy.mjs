@@ -13,6 +13,8 @@ const deploy = spawnSync(
     "dist",
     "--project-name",
     "recall-code",
+    "--branch",
+    "main",
   ],
   { stdio: "inherit" },
 );

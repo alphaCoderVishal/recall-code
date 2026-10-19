@@ -1,0 +1,12 @@
+name = "recall-code-reminders"
+main = "index.js"
+compatibility_date = "2026-10-01"
+[vars]
+VAPID_PUBLIC_KEY = "BPmFrbIFxZOiKx-RFT3zDQg5ZnSkCSX_g1QAPLneON9uT33htNj5OuZokFBtTy-kN7sW-0jJ8wtiWmEPB8pQKqY"
+APP_ORIGIN = "https://recall-code.pages.dev"
+[triggers]
+crons = ["* * * * *"]
+[[d1_databases]]
+binding = "DB"
+database_name = "recall-code-reminders"
+database_id = "776b6121-01d7-4c04-b7cb-2ea489810e0c"

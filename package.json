@@ -11,7 +11,7 @@
     "start": "npm run build && node scripts/serve.mjs --dist",
     "dev": "npm start",
     "build": "node scripts/build.mjs",
-    "test": "node --test tests/model.test.mjs tests/sync.test.mjs tests/database.test.mjs tests/catalog.test.mjs",
+    "test": "node --test tests/model.test.mjs tests/sync.test.mjs tests/database.test.mjs tests/catalog.test.mjs tests/reminders.test.mjs tests/progress.test.mjs",
     "test:e2e": "playwright test",
     "test:java": "node scripts/verify-java.mjs",
     "deploy": "node scripts/deploy.mjs"
@@ -25,6 +25,8 @@
     "wrangler": "^4.151.2"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.118.0"
+    "@block65/webcrypto-web-push": "^2.0.0",
+    "@supabase/supabase-js": "^2.118.0",
+    "luxon": "^3.7.2"
   }
 }
