@@ -55,3 +55,15 @@ Browser storage is scoped to origin and account. Signed-in documents are protect
 Clearing local storage removes cached progress and login state. Supabase stores signed-in progress; guest data stays in the browser. Google Fonts may be requested for typography. No analytics or AI service is included.
 
 RecallCode is independent and is not affiliated with LeetCode or Anki.
+
+## Progress, sounds, and daily push reminders
+
+The Progress tab counts distinct cards reviewed, latest Good/Easy cards, latest Again cards, total attempts, and today's attempts. Green questions have Good/Easy on every active card; red means at least one latest Again; amber is partial/Hard; gray is unreviewed. Paused cards are excluded from question colors, but included in overall card totals. Self-ratings are not automatic answer grading or permanent mastery.
+
+Data & backup contains device-local sound/mute/volume controls and daily push settings. Sounds are original synthesized tones, not Duolingo assets. Notifications use a service worker plus a scheduled Cloudflare Worker/D1 backend and can arrive when the app tab is closed. Browser/device support, notification permissions, battery restrictions, Do Not Disturb, and connectivity affect delivery. iOS/iPadOS users must install the site to the Home Screen. No email or login is required for reminders. Reminders are device-wide, continue after sign-out, and can be turned off in settings or browser permissions.
+
+The server stores a push subscription and local reminder time/timezone under a hashed random device capability, separate from study content. It follows daylight-saving changes, claims each due send before delivery, retries failures with limits, and removes expired endpoints. Initial capacity is 1,000 subscriptions and 10 deliveries per minute; delivery time is approximate. Clearing browser data loses the device capability; revoke notification permission if you want to stop reminders before clearing data.
+
+Backend configuration: `worker/wrangler.toml`, schema: `worker/schema.sql`. Deploy using `wrangler deploy --config worker/wrangler.toml`. `VAPID_PRIVATE_KEY` is a Cloudflare secret; do not rotate it casually because existing subscriptions use its public key. `scripts/setup-push-keys.mjs` refuses to replace existing keys. Frontend `REMINDERS_URL` is a public Worker origin. Scheduled Worker changes and static Pages changes are separate deployments.
+
+References: [MDN Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API), [MDN notifications](https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API/Using_the_Notifications_API), [WebCrypto Web Push](https://github.com/block65/webcrypto-web-push), [Cloudflare free-plan limits](https://developers.cloudflare.com/workers/platform/limits/).

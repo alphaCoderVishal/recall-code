@@ -1,0 +1,9 @@
+import {test,expect} from '@playwright/test';
+test('sound preferences persist, both ratings give distinct cues, and mute works',async({page})=>{
+ await page.addInitScript(()=>{window.playedNotes=[];window.AudioContext=class{state='running';currentTime=0;destination={};createOscillator(){const node={type:'',frequency:{value:0},connect(){},disconnect(){},start(){window.playedNotes.push(node.frequency.value)},stop(){}};return node;}createGain(){return {gain:{setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){},disconnect(){}}}};});
+ await page.goto('/');await page.getByRole('button',{name:'Data & backup'}).click();await expect(page.getByLabel('Play recall sounds')).not.toBeChecked();await page.getByLabel('Play recall sounds').check();await page.getByLabel('Sound volume').fill('45');
+ await page.reload();await page.getByRole('button',{name:'Data & backup'}).click();await expect(page.getByLabel('Play recall sounds')).toBeChecked();await expect(page.getByLabel('Sound volume')).toHaveValue('45');
+ await page.getByRole('button',{name:'Daily review6'}).click();await page.getByRole('button',{name:'Reveal answer',exact:true}).click();await page.getByRole('button',{name:/1 Again/}).click();await expect(page.getByRole('status')).toContainText('another try');expect(await page.evaluate(()=>window.playedNotes)).toEqual([330,262]);
+ await page.getByRole('button',{name:'Reveal answer',exact:true}).click();await page.getByRole('button',{name:/3 Good/}).click();expect(await page.evaluate(()=>window.playedNotes)).toEqual([330,262,523,659,784]);
+ await page.getByRole('button',{name:'Data & backup'}).click();await page.getByLabel('Play recall sounds').uncheck();await page.getByRole('button',{name:/Daily review/}).click();await page.getByRole('button',{name:'Reveal answer',exact:true}).click();await page.getByRole('button',{name:/3 Good/}).click();expect(await page.evaluate(()=>window.playedNotes.length)).toBe(5);
+});
