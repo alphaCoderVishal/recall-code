@@ -2,6 +2,8 @@
 
 Interview practice built around reasoning, spaced recall, and a question context panel.
 
+For a complete walkthrough of the codebase, architecture diagrams, data model, Supabase and Cloudflare responsibilities, deployment, security boundaries, and troubleshooting, read the [system and codebase guide](docs/system-guide.md).
+
 ## Run
 
 Node.js 22 or newer:
