@@ -1,79 +1,57 @@
 # RecallCode
 
-A focused web app for remembering the reasoning behind coding interview problems. Save a question once, break it into small flashcards, and review each idea on its own schedule.
+Interview practice built around reasoning, spaced recall, and a question context panel.
 
-## Run locally
+## Run
 
-Requires Node.js 20 or newer. No runtime packages, API keys, database, or paid services are needed.
+Node.js 22 or newer:
 
 ```sh
 npm ci
 npm start
 ```
 
-Open http://127.0.0.1:4173. Use this same address and browser to keep accessing the same saved study data. `npm start` serves the source; `npm run build` produces a static `dist/` directory. To serve that build locally:
+Open http://127.0.0.1:4173. The build works without cloud credentials in guest mode. Copy `.env.example` to `.env` to configure Supabase. Only a public project URL and publishable (or legacy anon) key belong in the frontend. Never use a service-role/secret key.
 
-```sh
-npm run build
-node scripts/serve.mjs --dist
-```
+## Features
 
-The server binds to loopback and is intended for local use. To host the app, upload the contents of `dist/` to a static HTTPS host. All asset paths are relative, including support for hosting under a repository subpath. Hosting is separate from uploading the source to GitHub.
+- 250 curated questions across arrays, search, sliding windows, linked lists, trees, heaps, graphs, backtracking, dynamic programming and bits.
+- Each question has original context, examples, reasoning, complexity, pitfalls, an interview follow-up, full Java code and multiple recall cards.
+- Search/filter the catalog, inspect a study guide, and add selected questions to practice. Enrollment preserves existing edits and schedules.
+- Problem, Notes, Solution and Full code side tabs; question/card CRUD; keyboard review; pause/resume; history; JSON backups.
+- Daily new-card budget (default 10) and independent SM-2-inspired schedules. This is not FSRS or Anki-compatible scheduling.
+- Optional Supabase GitHub login and account-scoped cloud progress. Guest practice stays separate; importing it into an account requires explicit replacement confirmation.
+- Offline edits, optimistic revision checks, explicit conflict choices, and a local recovery copy before conflict resolution.
+- Responsive desktop/mobile interface. No in-browser Java execution or LeetCode submission service.
 
-## What works
+## Hosting
 
-- Question library with title/tag search and difficulty filters.
-- Add, edit, and delete questions with problem context, notes, explanation, language, source link, and full solution code.
-- Multiple cards per question: pattern recognition, insight, steps, complexity, edge cases, or code recall.
-- Add/edit/delete/pause/resume cards, preserving the schedule when editing.
-- Due-card review queue, reveal answer, Again/Hard/Good/Easy ratings, keyboard shortcuts, and saved review history.
-- Side context panel with Problem, Notes, Solution, and Full code tabs. Code can be copied. Tabs reset to Problem after rating so a previous solution does not leak into the next card.
-- Independent adaptive schedules; question siblings are interleaved when other questions are available.
-- Persistent browser storage, cross-tab updates, and JSON export/restore with validation and explicit replacement confirmation.
-- Corrupt saved data is not silently overwritten. The backup screen can export the original stored text for recovery.
-- Responsive desktop/mobile UI, native dialogs, labeled inputs, visible focus, and reduced-motion support.
-- Two starter questions and six editable sample cards. Problem descriptions are original summaries; source links open LeetCode.
+Cloudflare Pages serves the static app and catalog. Supabase Free stores user progress and custom content. See [deployment instructions](docs/deployment.md). Free tiers have quotas and can change; no paid upgrade is needed for this initial setup. Supabase Free projects can pause after inactivity.
 
-## Storage and scope
+GitHub login is the default because Supabase's default email sender is restricted to project-team addresses. Public email/password signup needs an external SMTP service. OAuth credentials live only in Supabase, never in the repository or frontend bundle.
 
-This is a single-user, local-first release. Data lives in this browser's `localStorage` for the current origin (scheme, hostname, and port). It does **not** include sign-in, cloud synchronization, a remote database, code execution, AI generation, or automatic scraping/import from LeetCode. GitHub stores the application source, not your question data. Clearing browser data removes the local copy; export backups regularly. Import replaces the full dataset after confirmation, rather than merging it.
+## Research and quality
 
-Google Fonts improves typography when reachable; system font fallbacks work without it. No study data is sent to an API. Original-problem links open external sites only when clicked.
+See [research methodology](docs/research.md) and the three topic-specific research logs. This is a curated curriculum inspired by public study plans, not a verified frequency ranking or an exact copy of a named list. Descriptions and explanations are original; problem links lead to LeetCode. Representative pages were inspected live, and the logs distinguish these from additional reference links.
 
-## Scheduler
+All 250 Java solutions have executable example/edge-case programs. Passing local cases is not proof of acceptance against LeetCode's hidden tests. Some stateful solutions document required class-name changes for that platform.
 
-The scheduler is deterministic and SM-2-inspired, not FSRS or an exact Anki implementation:
-
-| Rating | New card | Existing interval |
-| --- | --- | --- |
-| Again | 1 minute | Reset interval; retry in 1 minute |
-| Hard | 1 day | × 1.2, rounded |
-| Good | 1 day | × ease, with at least 1 day growth |
-| Easy | 4 days | × ease × 1.3, with at least 1 day growth |
-
-Ease starts at 2.5, decreases for Again/Hard, increases for Easy, and is bounded between 1.3 and 3.5. Each rating stores a history event. A session is a snapshot of due cards: a failed card is eligible again after one minute via **Check for due cards** or a new session, not immediately appended to the active session. Paused cards stay out of the queue. All cards can be reviewed from Card studio without changing their schedules.
-
-## Verify
+## Verification
 
 ```sh
 npm test
+npm run test:java
 npm run build
 npx playwright install chromium
 npm run test:e2e
 ```
 
-Unit tests cover scheduling, sibling ordering, data validation, serialization, deletion cascades, and storage failures. Browser tests cover reviews/reload persistence, the full-code panel, question/card CRUD, pause, backup restore, invalid/corrupt data, and mobile overflow. GitHub Actions runs both suites and builds the static output.
+Java verification requires JDK 17+. Tests cover scheduler/data invariants, enrollment/compact snapshots, concurrent sync, account separation, actual PostgreSQL row-level security via PGlite, and browser workflows. `docs/java-verification.json` records the Java check. CI repeats checks on Linux.
 
-## Structure
+## Data
 
-```text
-src/app.js          UI, forms, persistence, session state
-src/model.js        Validation and scheduling logic
-src/seed.js         Editable starter content
-src/styles.css     Responsive product design
-scripts/serve.mjs   Local static server
-scripts/build.mjs   Static build
-tests/             Unit and browser coverage
-```
+Browser storage is scoped to origin and account. Signed-in documents are protected by owner-only RLS and server-side revision checks. Static catalog content is not duplicated per account; snapshots store references plus edits. Backup export expands those references into complete portable content. Export before clearing browser data or replacing a dataset. Cloud sync uses whole-document conflict resolution, not automatic merging or realtime collaboration.
 
-RecallCode is an independent study tool and is not affiliated with LeetCode or Anki.
+Clearing local storage removes cached progress and login state. Supabase stores signed-in progress; guest data stays in the browser. Google Fonts may be requested for typography. No analytics or AI service is included.
+
+RecallCode is independent and is not affiliated with LeetCode or Anki.

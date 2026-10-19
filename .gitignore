@@ -5,3 +5,6 @@ playwright-report/
 .env*
 !.env.example
 *.log
+src/catalog-data.js
+.java-verification/
+.wrangler/
