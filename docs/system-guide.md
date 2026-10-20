@@ -352,3 +352,12 @@ The score is the number of distinct existing card IDs whose latest history entry
 This is a motivational, self-reported scoreboard. Because snapshots, custom cards and self-ratings originate in the browser, it is not cheat-proof or suitable for prizes, certification or verified skill ranking. Server derivation prevents a direct score-column update but cannot prove that a learner actually recalled an answer. There is no weekly reset or immutable achievement history. Leaving hides the entry from subsequent leaderboard reads; it does not erase copies someone already saw. Private study data stays in the existing RLS-protected snapshot table.
 
 Tests cover duplicate reviews/cards, latest-rating order, orphan history, opt-in/out, equal ranks, unauthorized score changes, anonymous and cross-account access, safe nickname rendering, guest gating and mobile layout. Live account testing still depends on the GitHub OAuth provider being correctly configured.
+
+
+## Visual solution guides
+
+`src/learning.js` renders read-only learning guides in both the Solution tab and catalog preview. All 250 entries combine their existing question-specific context, example, solution, pitfalls and complexity with a labeled pattern diagram and teaching guidance. Personal saved solution notes remain available separately.
+
+Twelve questions have dedicated interactive traces: Two Sum, Trapping Rain Water, Valid Parentheses, Binary Search, Best Time to Buy and Sell Stock, Climbing Stairs, Reverse Linked List, Number of Islands, Longest Substring Without Repeating Characters, Maximum Subarray, Coin Change and Merge Intervals. Each offers alternate examples, highlighted state, Previous/Next/Restart controls and a question-specific intuition and use case. Other questions have pattern diagrams rather than bespoke animations. Rain Water illustrates per-column maxima before explaining the two-pointer optimization; Islands uses a separate visited representation for teaching.
+
+Trace functions are deterministic and operate on local demo inputs. Delegated events update only the demo widget; they do not write review history, enroll questions or sync data. All displayed content is HTML escaped. Diagrams include text descriptions, keyboard-operable controls and live step captions. No backend schema changes, new services or additional hosting costs are required. Unit tests verify trace results for every supplied example; browser tests exercise stepping, example switching, mobile width and unchanged practice data.
