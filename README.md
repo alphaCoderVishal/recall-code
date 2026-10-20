@@ -22,6 +22,7 @@ Open http://127.0.0.1:4173. The build works without cloud credentials in guest m
 - 250 curated questions across arrays, search, sliding windows, linked lists, trees, heaps, graphs, backtracking, dynamic programming and bits.
 - Each question has original context, examples, reasoning, complexity, pitfalls, an interview follow-up, full Java code and multiple recall cards.
 - Search/filter the catalog, inspect a study guide, and add selected questions to practice. Enrollment preserves existing edits and schedules.
+- Visual learning guides for all 250 catalog questions: pattern maps, examples, reasoning steps, practical analogies and complexity. Twelve key questions include interactive state traces with alternate examples and edge cases.
 - Problem, Notes, Solution and Full code side tabs; question/card CRUD; keyboard review; pause/resume; history; JSON backups.
 - Daily new-card budget (default 10) and independent SM-2-inspired schedules. This is not FSRS or Anki-compatible scheduling.
 - Optional Supabase GitHub login and account-scoped cloud progress. Guest practice stays separate; importing it into an account requires explicit replacement confirmation.

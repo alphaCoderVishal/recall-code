@@ -1,3 +1,4 @@
+import { renderLesson, installLessonInteractions } from "./learning.js";
 import { profileView } from "./profile.js";
 import { signInButtons } from "./auth-options.js";
 import {
@@ -155,7 +156,18 @@ function contextPanel(question) {
   let content = "";
   if (contextTab === "code")
     content = `<div class="code-head"><span>${esc(question.language || "Code")}</span><button data-action="copy-code" class="quiet">Copy code</button></div><pre class="code"><code>${esc(question.code || "No code saved yet. Add a solution in Edit question.")}</code></pre>`;
-  else
+  else if (contextTab === "solution") {
+    const entry =
+      catalogById.get(question.catalogId || question.id) ||
+      catalog.find(
+        (q) =>
+          question.url?.replace(/\/$/, "") ===
+          `https://leetcode.com/problems/${q.slug}`,
+      );
+    content =
+      (entry ? renderLesson(entry) : "") +
+      `<details class="guide-section" ${entry ? "" : "open"}><summary>Your saved solution & notes</summary><div class="prose">${esc(question.solution || "Add your explanation in Edit question.")}</div></details>`;
+  } else
     content = `<div class="prose">${esc(question[contextTab === "problem" ? "context" : contextTab] || "Nothing here yet. Add it in Edit question.")}</div>`;
   return `<aside class="context"><div class="eyebrow context-head">QUESTION CONTEXT <button class="quiet" data-action="context" aria-label="Close question context">×</button></div><h2>${esc(question.title)}</h2><span class="badge ${question.difficulty.toLowerCase()}">${esc(question.difficulty)}</span> <span class="muted small">${esc(question.tags)}</span><div class="tabs" role="group" aria-label="Question context sections">${[
     ["problem", "Problem"],
@@ -176,7 +188,7 @@ function reviewView() {
     question = card && data.questions.find((q) => q.id === card.questionId);
   if (!card || !question)
     return `<div class="page-heading"><div><div class="eyebrow">DAILY REVIEW</div><h1>${completed ? "A little stronger than before." : "You’re all caught up."}</h1><p class="muted">${completed ? `${completed} cards reviewed this session.` : "No cards are due right now."}</p></div></div><section class="empty"><div class="empty-icon">✓</div><h2>${data.cards.length ? "Give your memory some breathing room." : "Start with a question you’ve solved."}</h2><p>${nextDue()}</p><div class="actions"><button class="primary" data-action="check-due">Check for due cards</button><button data-action="navigate" data-value="library">Browse questions</button></div></section>`;
-  return `<div class="page-heading"><div><div class="eyebrow">YOUR DAILY PRACTICE</div><h1>A little recall. A stronger intuition.</h1><p class="muted">Focus on the reasoning, one idea at a time.</p></div><button data-action="context" aria-expanded="${contextOpen}">${contextOpen ? "Hide context" : "Open question context"}</button></div><div class="workspace ${!contextOpen ? "closed" : ""} ${contextTab === "code" ? "code-open" : ""}"><section class="review"><div class="flash"><div class="flash-meta"><span class="badge">${esc(card.type)}</span><span class="muted small">${completed + 1} / ${sessionTotal}</span></div><div class="question-label">${esc(question.title)} <span class="dot">·</span> ${esc(question.difficulty)}</div><h2 class="prompt">${esc(card.front)}</h2>${revealed ? `<div class="answer"><div class="eyebrow">THE IDEA</div><div class="prose">${esc(card.back)}</div></div>` : '<div class="recall-space"><span>Take a moment. Explain it in your own words.</span></div>'}<div class="flash-footer"><span class="small muted">${revealed ? "How well did you recall it?" : "Space to reveal · 1–4 to rate"}</span><button class="${revealed ? "" : "primary"}" data-action="reveal">${revealed ? "Hide answer" : "Reveal answer"}</button></div></div>${revealed ? `<div class="ratings">${RATINGS.map((rating, i) => `<button data-action="rate" data-value="${rating}"><span><kbd>${i + 1}</kbd> ${rating}</span><small>${intervalLabel(schedule(card, rating).due - Date.now())}</small></button>`).join("")}</div>` : ""}<div class="progress" role="progressbar" aria-label="Session progress" aria-valuemin="0" aria-valuemax="${sessionTotal}" aria-valuenow="${completed}"><div style="width:${sessionTotal ? (completed / sessionTotal) * 100 : 0}%"></div></div><div class="review-bottom muted small"><span>${completed} of ${sessionTotal} reviewed</span><button class="quiet" data-action="edit-card" data-id="${card.id}">Edit this card</button></div></section>${contextPanel(question)}</div>`;
+  return `<div class="page-heading"><div><div class="eyebrow">YOUR DAILY PRACTICE</div><h1>A little recall. A stronger intuition.</h1><p class="muted">Focus on the reasoning, one idea at a time.</p></div><button data-action="context" aria-expanded="${contextOpen}">${contextOpen ? "Hide context" : "Open question context"}</button></div><div class="workspace ${!contextOpen ? "closed" : ""} ${["code", "solution"].includes(contextTab) ? "code-open" : ""}"><section class="review"><div class="flash"><div class="flash-meta"><span class="badge">${esc(card.type)}</span><span class="muted small">${completed + 1} / ${sessionTotal}</span></div><div class="question-label">${esc(question.title)} <span class="dot">·</span> ${esc(question.difficulty)}</div><h2 class="prompt">${esc(card.front)}</h2>${revealed ? `<div class="answer"><div class="eyebrow">THE IDEA</div><div class="prose">${esc(card.back)}</div></div>` : '<div class="recall-space"><span>Take a moment. Explain it in your own words.</span></div>'}<div class="flash-footer"><span class="small muted">${revealed ? "How well did you recall it?" : "Space to reveal · 1–4 to rate"}</span><button class="${revealed ? "" : "primary"}" data-action="reveal">${revealed ? "Hide answer" : "Reveal answer"}</button></div></div>${revealed ? `<div class="ratings">${RATINGS.map((rating, i) => `<button data-action="rate" data-value="${rating}"><span><kbd>${i + 1}</kbd> ${rating}</span><small>${intervalLabel(schedule(card, rating).due - Date.now())}</small></button>`).join("")}</div>` : ""}<div class="progress" role="progressbar" aria-label="Session progress" aria-valuemin="0" aria-valuemax="${sessionTotal}" aria-valuenow="${completed}"><div style="width:${sessionTotal ? (completed / sessionTotal) * 100 : 0}%"></div></div><div class="review-bottom muted small"><span>${completed} of ${sessionTotal} reviewed</span><button class="quiet" data-action="edit-card" data-id="${card.id}">Edit this card</button></div></section>${contextPanel(question)}</div>`;
 }
 function intervalLabel(ms) {
   return ms < 120000
@@ -252,7 +264,7 @@ function previewCatalog(catalogId) {
   if (!q) return;
   openModal(
     `${q.number}. ${esc(q.title)}`,
-    `<span class="badge">${esc(q.difficulty)}</span> <span class="small muted">${esc(q.tags)}</span><h3>Understand the task</h3><div class="prose">${esc(q.context)}</div><h3>Worked example</h3><div class="prose">${esc(q.examples)}</div><details class="guide-section"><summary>Reveal approach & reasoning</summary><div class="prose">${esc(q.solution)}</div><p><strong>Time:</strong> ${esc(q.timeComplexity)}<br><strong>Space:</strong> ${esc(q.spaceComplexity)}</p><h3>Common mistake</h3><div class="prose">${esc(q.pitfall)}</div><h3>Follow-up to explain aloud</h3><div class="prose">${esc(q.followUp)}</div></details><details class="guide-section"><summary>Reveal full Java solution</summary><pre class="code"><code>${esc(q.code)}</code></pre></details><details class="guide-section"><summary>${q.cards.length} recall prompts</summary><ol>${q.cards.map((c) => `<li>${esc(c.front)}</li>`).join("")}</ol></details><p class="small"><a href="https://leetcode.com/problems/${q.slug}/" target="_blank" rel="noopener">Open original problem ↗</a></p>`,
+    `<span class="badge">${esc(q.difficulty)}</span> <span class="small muted">${esc(q.tags)}</span><h3>Understand the task</h3><div class="prose">${esc(q.context)}</div><h3>Worked example</h3><div class="prose">${esc(q.examples)}</div><details class="guide-section"><summary>Reveal approach & reasoning</summary>${renderLesson(q)}</details><details class="guide-section"><summary>Reveal full Java solution</summary><pre class="code"><code>${esc(q.code)}</code></pre></details><details class="guide-section"><summary>${q.cards.length} recall prompts</summary><ol>${q.cards.map((c) => `<li>${esc(c.front)}</li>`).join("")}</ol></details><p class="small"><a href="https://leetcode.com/problems/${q.slug}/" target="_blank" rel="noopener">Open original problem ↗</a></p>`,
     () => {
       const existing = enrolledQuestion(data, q);
       if (existing) {
@@ -869,6 +881,7 @@ document.addEventListener("keydown", (e) => {
   if (
     modal.open ||
     screen !== "review" ||
+    e.target.closest(".learning-guide") ||
     /INPUT|TEXTAREA|SELECT|BUTTON|A/.test(e.target.tagName) ||
     e.ctrlKey ||
     e.altKey ||
@@ -900,6 +913,7 @@ window.addEventListener("storage", (e) => {
     );
   }
 });
+installLessonInteractions();
 render();
 cloud = createCloud({
   pack: packData,
